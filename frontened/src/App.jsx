@@ -28,7 +28,7 @@ import { setLocation } from "./redux/mapSlice";
 import {  socket } from "./socket";
 //import { setSocket } from './redux/userSlice'
 
-export const serverUrl = "http://localhost:4000";
+export const serverUrl = "import.meta.env.VITE_API_URL";
 
 function App() {
    const { userData } = useSelector((state) => state.user); // ← was missing!
