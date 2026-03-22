@@ -1,6 +1,6 @@
 import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import SignUp from "./pages/SignUp";
+import SignUp from "./pages/Signup";
 import SignIn from "./pages/SignIn";
 import ForgotPassword from "./pages/Forgot_paswd";
 import useGetCurrentUser from "./hook/useGetCurrentUser";
