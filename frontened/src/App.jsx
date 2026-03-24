@@ -6,7 +6,7 @@ import ForgotPassword from "./pages/Forgot_paswd";
 import useGetCurrentUser from "./hook/UsegetCurrentUser";
 import {  useSelector } from "react-redux";
 import Home from "./pages/Home";
-import useGetCity from "./hook/useGetCity";
+import useGetCity from "./hook/UseGetCity";
 import useGetMyshop from "./hook/useGetMyShop";
 import CreateEditShop from "./pages/CreateEditShop";
 import AddItem from "./pages/AddItem";
