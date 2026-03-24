@@ -1,7 +1,7 @@
 import React from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import SignUp from "./pages/SignUp";
-import SignIn from "./pages/SignIn";
+import SignIn from "./pages/SignIn";  // capital S and capital I
 import ForgotPassword from "./pages/Forgot_paswd";
 import useGetCurrentUser from "./hook/useGetCurrentUser";
 import {  useSelector } from "react-redux";
@@ -28,7 +28,7 @@ import { setLocation } from "./redux/mapSlice";
 import {  socket } from "./socket";
 //import { setSocket } from './redux/userSlice'
 
-export const serverUrl = "import.meta.env.VITE_API_URL";
+export const serverUrl = import.meta.env.VITE_API_URL;
 
 function App() {
    const { userData } = useSelector((state) => state.user); // ← was missing!

@@ -232,10 +232,12 @@ function TrackOrderPage() {
         }));
       },
     );
-  }, [socket]);
+    return () => socket.off("updateDeliveryLocation");
+  }, []);
 
   useEffect(() => {
     handleGetOrder();
+    
   }, [orderId]);
 
   const getStatusClass = (status) => {
