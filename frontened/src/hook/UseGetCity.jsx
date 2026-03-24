@@ -2,7 +2,7 @@ import axios from 'axios'
 import React, { useEffect } from 'react'
 //import { serverUrl } from '../App'
 import { useDispatch, useSelector } from 'react-redux'
-import {  setCurrentAddress, setCurrentCity, setCurrentState } from '../redux/userSliceserSlice'
+import {  setCurrentAddress, setCurrentCity, setCurrentState } from '../redux/userSlice'
 import { setAddress, setLocation } from '../redux/mapSlice'
 
 function useGetCity() {
