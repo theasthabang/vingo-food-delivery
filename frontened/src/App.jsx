@@ -3,7 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import SignUp from "./pages/SignUp";
 import SignIn from "./pages/SignIn";  // capital S and capital I
 import ForgotPassword from "./pages/Forgot_paswd";
-import useGetCurrentUser from "./hook/useGetCurrentUser";
+import useGetCurrentUser from "./hook/UseGetCurrentUser";
 import {  useSelector } from "react-redux";
 import Home from "./pages/Home";
 import useGetCity from "./hook/useGetCity";
