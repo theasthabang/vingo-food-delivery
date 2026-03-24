@@ -217,7 +217,7 @@ function SignUp() {
 
           {/* Header */}
           <div className="su-header">
-            <h1 className="su-logo">vin<span>go</span></h1>
+            <h1 className="su-logo">meal<span>Hunt</span></h1>
             <p className="su-header-sub">Create your account and start ordering delicious food</p>
           </div>
 

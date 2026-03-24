@@ -242,8 +242,8 @@ function SignIn() {
           <div className="si-left">
             <div className="si-lb1" /><div className="si-lb2" />
             <div className="si-brand">
-              <div className="si-brand-icon">V</div>
-              <span className="si-brand-name">vingo</span>
+              <div className="si-brand-icon">m</div>
+              <span className="si-brand-name">mealHunt</span>
             </div>
             <div className="si-left-mid">
               <h2 className="si-left-title">Food delivered<span>at your door.</span></h2>
