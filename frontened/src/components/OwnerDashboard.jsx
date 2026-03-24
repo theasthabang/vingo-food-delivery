@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux'
 import { FaUtensils } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import { FaPen } from "react-icons/fa";
-import OwnerItemCard from './ownerItemCard';
+import OwnerItemCard from './OwnerItemCard';
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
