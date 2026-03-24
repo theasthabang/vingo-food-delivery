@@ -1,12 +1,27 @@
-import React from 'react'
-import scooter from "../assets/scooter.png"
-import home from "../assets/home.png"
-import "leaflet/dist/leaflet.css"
-import L from "leaflet"
-import { MapContainer, Marker, Polyline, Popup, TileLayer } from 'react-leaflet'
+import React from "react";
+import scooter from "../assets/scooter.png";
+import home from "../assets/home.png";
+import "leaflet/dist/leaflet.css";
+import L from "leaflet";
+import {
+  MapContainer,
+  Marker,
+  Polyline,
+  Popup,
+  TileLayer,
+} from "react-leaflet";
+import { calculateETA } from "../utils/eta";
 
-const deliveryBoyIcon = new L.Icon({ iconUrl: scooter, iconSize: [38, 38], iconAnchor: [19, 38] })
-const customerIcon = new L.Icon({ iconUrl: home, iconSize: [38, 38], iconAnchor: [19, 38] })
+const deliveryBoyIcon = new L.Icon({
+  iconUrl: scooter,
+  iconSize: [38, 38],
+  iconAnchor: [19, 38],
+});
+const customerIcon = new L.Icon({
+  iconUrl: home,
+  iconSize: [38, 38],
+  iconAnchor: [19, 38],
+});
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap');
@@ -37,10 +52,11 @@ const css = `
 `;
 
 function DeliveryBoyTracking({ data }) {
-  const dbLat = data.deliveryBoyLocation.lat
-  const dbLon = data.deliveryBoyLocation.lon
-  const cLat = data.customerLocation.lat
-  const cLon = data.customerLocation.lon
+  const dbLat = data.deliveryBoyLocation.lat;
+  const dbLon = data.deliveryBoyLocation.lon;
+  const cLat = data.customerLocation.lat;
+  const cLon = data.customerLocation.lon;
+  const { distanceKm, etaMinutes } = calculateETA(dbLat, dbLon, cLat, cLon);
 
   return (
     <>
@@ -49,20 +65,38 @@ function DeliveryBoyTracking({ data }) {
         <div className="dbt-bar">
           <div className="dbt-pulse" />
           <span className="dbt-title">Live Tracking</span>
-          <span className="dbt-sub">Order on its way 🛵</span>
+         
+          <div className="dbt-eta-wrap">
+            <div className="dbt-dist-chip">📍 {distanceKm} km away</div>
+            <div className="dbt-eta-chip">
+              🕐 <span className="dbt-eta-time">{etaMinutes}</span> min
+            </div>
+          </div>
         </div>
         <MapContainer className="dbt-map" center={[dbLat, dbLon]} zoom={16}>
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <Marker position={[dbLat, dbLon]} icon={deliveryBoyIcon}><Popup>Delivery Partner</Popup></Marker>
-          <Marker position={[cLat, cLon]} icon={customerIcon}><Popup>Your Location</Popup></Marker>
-          <Polyline positions={[[dbLat, dbLon], [cLat, cLon]]} color="#ff4d2d" weight={3} dashArray="8 5" />
+          <Marker position={[dbLat, dbLon]} icon={deliveryBoyIcon}>
+            <Popup>Delivery Partner</Popup>
+          </Marker>
+          <Marker position={[cLat, cLon]} icon={customerIcon}>
+            <Popup>Your Location</Popup>
+          </Marker>
+          <Polyline
+            positions={[
+              [dbLat, dbLon],
+              [cLat, cLon],
+            ]}
+            color="#ff4d2d"
+            weight={3}
+            dashArray="8 5"
+          />
         </MapContainer>
       </div>
     </>
-  )
+  );
 }
 
-export default DeliveryBoyTracking
+export default DeliveryBoyTracking;

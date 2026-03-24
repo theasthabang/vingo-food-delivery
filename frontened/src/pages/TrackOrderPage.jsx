@@ -1,12 +1,17 @@
-import axios from 'axios'
-import React, { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { serverUrl } from '../App'
+import axios from "axios";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { serverUrl } from "../App";
 import { IoIosArrowRoundBack } from "react-icons/io";
-import DeliveryBoyTracking from '../components/DileveryBoyTracking'
+import DeliveryBoyTracking from "../components/DileveryBoyTracking";
 import { socket } from "../socket";
-import { MdPhone, MdLocationOn, MdDeliveryDining, MdCheckCircle } from 'react-icons/md';
-import { FiPackage, FiClock } from 'react-icons/fi';
+import {
+  MdPhone,
+  MdLocationOn,
+  MdDeliveryDining,
+  MdCheckCircle,
+} from "react-icons/md";
+import { FiPackage, FiClock } from "react-icons/fi";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -196,47 +201,54 @@ const css = `
 `;
 
 function TrackOrderPage() {
-  const { orderId } = useParams()
-  const [currentOrder, setCurrentOrder] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [liveLocations, setLiveLocations] = useState({})
-  const navigate = useNavigate()
+  const { orderId } = useParams();
+  const [currentOrder, setCurrentOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [liveLocations, setLiveLocations] = useState({});
+  const navigate = useNavigate();
 
   const handleGetOrder = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const result = await axios.get(`${serverUrl}/api/order/get-order-by-id/${orderId}`, { withCredentials: true })
-      setCurrentOrder(result.data)
+      const result = await axios.get(
+        `${serverUrl}/api/order/get-order-by-id/${orderId}`,
+        { withCredentials: true },
+      );
+      setCurrentOrder(result.data);
     } catch (error) {
-      console.log(error)
+      console.log(error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    socket.on('updateDeliveryLocation', ({ deliveryBoyId, latitude, longitude }) => {
-      setLiveLocations(prev => ({
-        ...prev,
-        [deliveryBoyId]: { lat: latitude, lon: longitude }
-      }))
-    })
-  }, [socket])
+    socket.on(
+      "updateDeliveryLocation",
+      ({ deliveryBoyId, latitude, longitude }) => {
+        setLiveLocations((prev) => ({
+          ...prev,
+          [deliveryBoyId]: { lat: latitude, lon: longitude },
+        }));
+      },
+    );
+  }, [socket]);
 
-  useEffect(() => { handleGetOrder() }, [orderId])
+  useEffect(() => {
+    handleGetOrder();
+  }, [orderId]);
 
   const getStatusClass = (status) => {
-    if (status === "delivered") return "delivered"
-    if (status === "preparing") return "preparing"
-    if (status === "out of delivery") return "outdelivery"
-    return "pending"
-  }
+    if (status === "delivered") return "delivered";
+    if (status === "preparing") return "preparing";
+    if (status === "out of delivery") return "outdelivery";
+    return "pending";
+  };
 
   return (
     <>
       <style>{css}</style>
       <div className="to-page">
-
         {/* Topbar */}
         <div className="to-topbar">
           <div className="to-back" onClick={() => navigate("/")}>
@@ -249,7 +261,6 @@ function TrackOrderPage() {
         </div>
 
         <div className="to-inner">
-
           {/* Skeleton */}
           {loading && (
             <>
@@ -259,117 +270,144 @@ function TrackOrderPage() {
           )}
 
           {/* Orders */}
-          {!loading && currentOrder?.shopOrders?.map((shopOrder, index) => {
-            const isDelivered = shopOrder.status === "delivered"
-            const hasDeliveryBoy = !!shopOrder.assignedDeliveryBoy
-            const deliveryBoyId = shopOrder.assignedDeliveryBoy?._id
-            const statusClass = getStatusClass(shopOrder.status)
+          {!loading &&
+            currentOrder?.shopOrders?.map((shopOrder, index) => {
+              const isDelivered = shopOrder.status === "delivered";
+              const hasDeliveryBoy = !!shopOrder.assignedDeliveryBoy;
+              const deliveryBoyId = shopOrder.assignedDeliveryBoy?._id;
+              const statusClass = getStatusClass(shopOrder.status);
 
-            return (
-              <div className="to-card" key={index}>
-
-                {/* Card header */}
-                <div className="to-card-head">
-                  <p className="to-shop-name">{shopOrder.shop.name}</p>
-                  <span className={"to-status-pill " + statusClass}>
-                    {shopOrder.status}
-                  </span>
-                </div>
-
-                <div className="to-card-body">
-
-                  {/* Items */}
-                  <div className="to-info-row">
-                    <FiPackage className="to-info-icon" size={15} />
-                    <div>
-                      <div className="to-info-label" style={{ marginBottom: '6px' }}>Order Items</div>
-                      <div className="to-items-wrap">
-                        {shopOrder.shopOrderItems?.map((item, i) => (
-                          <span key={i} className="to-item-chip">{item.name} ×{item.quantity}</span>
-                        ))}
-                      </div>
-                    </div>
+              return (
+                <div className="to-card" key={index}>
+                  {/* Card header */}
+                  <div className="to-card-head">
+                    <p className="to-shop-name">{shopOrder.shop.name}</p>
+                    <span className={"to-status-pill " + statusClass}>
+                      {shopOrder.status}
+                    </span>
                   </div>
 
-                  {/* Delivery address */}
-                  <div className="to-info-row">
-                    <MdLocationOn className="to-info-icon" size={16} />
-                    <div>
-                      <span className="to-info-label">Delivery Address</span>
-                      <div style={{ marginTop: '2px' }}>{currentOrder.deliveryAddress?.text}</div>
-                    </div>
-                  </div>
-
-                  {/* Subtotal */}
-                  <div className="to-subtotal-row">
-                    <span className="to-subtotal-label">Order Subtotal</span>
-                    <span className="to-subtotal-val">₹{shopOrder.subtotal}</span>
-                  </div>
-
-                  <div className="to-sep" />
-
-                  {/* Delivered state */}
-                  {isDelivered ? (
-                    <div className="to-delivered-banner">
-                      <MdCheckCircle className="to-delivered-icon" size={26} />
+                  <div className="to-card-body">
+                    {/* Items */}
+                    <div className="to-info-row">
+                      <FiPackage className="to-info-icon" size={15} />
                       <div>
-                        <p className="to-delivered-title">Order Delivered!</p>
-                        <p className="to-delivered-sub">Your order was delivered successfully. Enjoy your meal! 🍽</p>
+                        <div
+                          className="to-info-label"
+                          style={{ marginBottom: "6px" }}
+                        >
+                          Order Items
+                        </div>
+                        <div className="to-items-wrap">
+                          {shopOrder.shopOrderItems?.map((item, i) => (
+                            <span key={i} className="to-item-chip">
+                              {item.name} ×{item.quantity}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  ) : (
-                    <>
-                      {/* Delivery boy info */}
-                      {hasDeliveryBoy ? (
-                        <div className="to-boy-card">
-                          <div className="to-boy-avatar">
-                            {shopOrder.assignedDeliveryBoy.fullName.slice(0, 1).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="to-boy-name">{shopOrder.assignedDeliveryBoy.fullName}</p>
-                            <div className="to-boy-phone">
-                              <MdPhone size={13} />
-                              {shopOrder.assignedDeliveryBoy.mobile}
+
+                    {/* Delivery address */}
+                    <div className="to-info-row">
+                      <MdLocationOn className="to-info-icon" size={16} />
+                      <div>
+                        <span className="to-info-label">Delivery Address</span>
+                        <div style={{ marginTop: "2px" }}>
+                          {currentOrder.deliveryAddress?.text}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Subtotal */}
+                    <div className="to-subtotal-row">
+                      <span className="to-subtotal-label">Order Subtotal</span>
+                      <span className="to-subtotal-val">
+                        ₹{shopOrder.subtotal}
+                      </span>
+                    </div>
+
+                    <div className="to-sep" />
+
+                    {/* Delivered state */}
+                    {isDelivered ? (
+                      <div className="to-delivered-banner">
+                        <MdCheckCircle
+                          className="to-delivered-icon"
+                          size={26}
+                        />
+                        <div>
+                          <p className="to-delivered-title">Order Delivered!</p>
+                          <p className="to-delivered-sub">
+                            Your order was delivered successfully. Enjoy your
+                            meal! 🍽
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Delivery boy info */}
+                        {hasDeliveryBoy ? (
+                          <div className="to-boy-card">
+                            <div className="to-boy-avatar">
+                              {shopOrder.assignedDeliveryBoy.fullName
+                                .slice(0, 1)
+                                .toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="to-boy-name">
+                                {shopOrder.assignedDeliveryBoy.fullName}
+                              </p>
+                              <div className="to-boy-phone">
+                                <MdPhone size={13} />
+                                {shopOrder.assignedDeliveryBoy.mobile}
+                              </div>
+                            </div>
+                            <div style={{ marginLeft: "auto" }}>
+                              <MdDeliveryDining
+                                size={24}
+                                style={{ color: "#1a3c2e" }}
+                              />
                             </div>
                           </div>
-                          <div style={{ marginLeft: 'auto' }}>
-                            <MdDeliveryDining size={24} style={{ color: '#1a3c2e' }} />
+                        ) : (
+                          <div className="to-not-assigned">
+                            <FiClock size={16} />
+                            Finding a delivery partner for your order…
                           </div>
-                        </div>
-                      ) : (
-                        <div className="to-not-assigned">
-                          <FiClock size={16} />
-                          Finding a delivery partner for your order…
-                        </div>
-                      )}
+                        )}
 
-                      {/* Live map */}
-                      {hasDeliveryBoy && (
-                        <div className="to-map-wrap">
-                          <DeliveryBoyTracking data={{
-                            deliveryBoyLocation: liveLocations[deliveryBoyId] || {
-                              lat: shopOrder.assignedDeliveryBoy.location.coordinates[1],
-                              lon: shopOrder.assignedDeliveryBoy.location.coordinates[0]
-                            },
-                            customerLocation: {
-                              lat: currentOrder.deliveryAddress.latitude,
-                              lon: currentOrder.deliveryAddress.longitude
-                            }
-                          }} />
-                        </div>
-                      )}
-                    </>
-                  )}
-
+                        {/* Live map */}
+                        {hasDeliveryBoy && (
+                          <div className="to-map-wrap">
+                            <DeliveryBoyTracking
+                              data={{
+                                deliveryBoyLocation: liveLocations[
+                                  deliveryBoyId
+                                ] || {
+                                  lat: shopOrder.assignedDeliveryBoy.location
+                                    .coordinates[1],
+                                  lon: shopOrder.assignedDeliveryBoy.location
+                                    .coordinates[0],
+                                },
+                                customerLocation: {
+                                  lat: currentOrder.deliveryAddress.latitude,
+                                  lon: currentOrder.deliveryAddress.longitude,
+                                },
+                              }}
+                            />
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
-
+              );
+            })}
         </div>
       </div>
     </>
-  )
+  );
 }
 
-export default TrackOrderPage
+export default TrackOrderPage;
