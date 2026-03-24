@@ -25,7 +25,7 @@ import { useEffect } from "react";
 import { io } from "socket.io-client";
 import { useDispatch } from "react-redux";
 import { setLocation } from "./redux/mapSlice";
-import {  socket } from "./socket";
+//import {  socket } from "./socket";
 //import { setSocket } from './redux/userSlice'
 
 export const serverUrl = import.meta.env.VITE_API_URL;
@@ -47,11 +47,7 @@ function App() {
   }, []);
   
 
-  useEffect(() => {
-    if (userData) {
-      socket.emit("identity", { userId: userData._id });
-    }
-  }, [userData?._id]);
+
   useGetCurrentUser();
   useUpdateLocation();
   useGetCity();
@@ -61,17 +57,24 @@ function App() {
   useGetMyOrders();
 
   useEffect(() => {
-    const socketInstance = io(serverUrl, { withCredentials: true });
-    //dispatch(setSocket(socketInstance));
-    socketInstance.on("connect", () => {
-      if (userData) {
-        socketInstance.emit("identity", { userId: userData._id });
-      }
-    });
-    return () => {
-      socketInstance.disconnect();
-    };
-  }, [userData?._id]);
+  if (typeof window === "undefined") return; // ✅ prevent Vercel build issues
+  if (!userData) return;
+
+  const socketInstance = io(serverUrl, {
+    withCredentials: true,
+    autoConnect: false,
+  });
+
+  socketInstance.connect();
+
+  socketInstance.on("connect", () => {
+    socketInstance.emit("identity", { userId: userData._id });
+  });
+
+  return () => {
+    socketInstance.disconnect();
+  };
+}, [userData?._id]);
 
   return (
     <Routes>
