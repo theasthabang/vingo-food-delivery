@@ -1,30 +1,46 @@
-import axios from 'axios'
-import React, { useEffect } from 'react'
-import { serverUrl } from '../App'
-import { useDispatch, useSelector } from 'react-redux'
-import { setMyOrders } from '../redux/userSlice'
-//import { setMyShopData } from '../redux/ownerSlice'
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { serverUrl } from "../App";
+import { useDispatch, useSelector } from "react-redux";
+import { setMyOrders } from "../redux/userSlice";
 
 function useGetMyOrders() {
-    const dispatch=useDispatch()
-    const {userData}=useSelector(state=>state.user)
-  useEffect(()=>{
-  const fetchOrders=async () => {
-    try {
-           const result=await axios.get(`${serverUrl}/api/order/my-orders`,{withCredentials:true})
-            dispatch(setMyOrders(result.data))
-   
+  const dispatch = useDispatch();
+  const { userData } = useSelector((state) => state.user);
 
+  const [loading, setLoading] = useState(false);
 
-    } catch (error) {
-        console.log(error)
-    }
+  useEffect(() => {
+    if (!userData?._id) return; // ✅ FIX: only run when user exists
+
+    const fetchOrders = async () => {
+      setLoading(true);
+      try {
+        const result = await axios.get(
+          `${serverUrl}/api/order/my-orders`,
+          { withCredentials: true }
+        );
+
+        dispatch(setMyOrders(result.data));
+      } catch (error) {
+        if (error.response?.status === 401) {
+          // ✅ normal: user not authenticated
+          console.warn("Unauthorized - please login");
+        } else {
+          console.error(
+            "Fetch orders error:",
+            error?.response?.data || error.message
+          );
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, [userData?._id]); // ✅ better dependency
+
+  return { loading };
 }
-  fetchOrders()
 
- 
-  
-  },[userData])
-}
-
-export default useGetMyOrders
+export default useGetMyOrders;
