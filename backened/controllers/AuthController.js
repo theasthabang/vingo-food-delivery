@@ -39,7 +39,14 @@ export const signUp = async (req, res) => {
       httpOnly: true,
     });
 
-    return res.status(201).json(user);
+    return res.status(201).json({
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      mobile: user.mobile,
+      token,
+    });
   } catch (error) {
     return res.status(500).json(`sign up error ${error}`);
   }
