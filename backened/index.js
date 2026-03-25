@@ -8,41 +8,66 @@ import UserRouter from "./routes/User.route.js";
 import ShopRouter from "./routes/ShopRoute.js";
 import ItemRouter from "./routes/ItemRouter.js";
 import orderRouter from "./routes/OrderRoute.js";
-import http from "http"
+import http from "http";
 import { Server } from "socket.io";
 import { socketHandler } from "./socket.js";
 
 dotenv.config();
 
 const app = express();
-const server= http.createServer(app)
-const io = new Server(server ,{
-    cors:{
-    origin: 'https://mealhunt-good-dilevery99.vercel.app',
-  credentials: true,
-    methods:['POST' , 'GET']
-  },
-})
+const server = http.createServer(app);
 
-app.set("io" , io)
-const port = process.env.PORT || 5000;
+// ✅ CORS ORIGIN CHECK FUNCTION
+const allowedOrigin = (origin, callback) => {
+  if (!origin) return callback(null, true); // allow Postman / mobile
+
+  if (
+    origin.includes("localhost") ||
+    origin.includes("vercel.app")
+  ) {
+    return callback(null, true);
+  }
+
+  return callback(new Error("Not allowed by CORS"));
+};
+
+// ✅ EXPRESS CORS
 app.use(
   cors({
-    origin: "https://mealhunt-good-dilevery99.vercel.app",
+    origin: allowedOrigin,
     credentials: true,
-  }),
+  })
 );
+
+// ✅ SOCKET.IO CORS
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigin,
+    credentials: true,
+    methods: ["GET", "POST"],
+  },
+});
+
+app.set("io", io);
+
+// ✅ MIDDLEWARES
 app.use(express.json());
 app.use(cookieParser());
+
+// ✅ ROUTES
 app.use("/api/auth", authrouter);
 app.use("/api/user", UserRouter);
 app.use("/api/shop", ShopRouter);
 app.use("/api/item", ItemRouter);
 app.use("/api/order", orderRouter);
 
-socketHandler(io)
+// ✅ SOCKET HANDLER
+socketHandler(io);
+
+// ✅ START SERVER
+const port = process.env.PORT || 5000;
 
 server.listen(port, () => {
   connectDB();
-  console.log(`Server started at ${port}`);
+  console.log(`Server running on port ${port}`);
 });
