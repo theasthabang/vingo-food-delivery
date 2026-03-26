@@ -7,11 +7,10 @@ import { setMyOrders } from "../redux/userSlice";
 function useGetMyOrders() {
   const dispatch = useDispatch();
   const { userData } = useSelector((state) => state.user);
-
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!userData?._id) return; // ✅ FIX: only run when user exists
+    if (!userData?._id) return;
 
     const fetchOrders = async () => {
       setLoading(true);
@@ -20,17 +19,12 @@ function useGetMyOrders() {
           `${serverUrl}/api/order/my-orders`,
           { withCredentials: true }
         );
-
         dispatch(setMyOrders(result.data));
       } catch (error) {
-        if (error.response?.status === 401) {
-          // ✅ normal: user not authenticated
-          console.warn("Unauthorized - please login");
+        if (error?.response?.status === 401) {
+          dispatch(setMyOrders([])); // ✅ clear stale orders on auth failure
         } else {
-          console.error(
-            "Fetch orders error:",
-            error?.response?.data || error.message
-          );
+          console.error("Fetch orders error:", error?.response?.data || error.message);
         }
       } finally {
         setLoading(false);
@@ -38,7 +32,7 @@ function useGetMyOrders() {
     };
 
     fetchOrders();
-  }, [userData?._id]); // ✅ better dependency
+  }, [userData?._id, dispatch]); // ✅ dispatch added to deps
 
   return { loading };
 }

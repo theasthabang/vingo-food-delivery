@@ -5,38 +5,33 @@ import { sendOtpMail } from "../utils/Mail.js";
 export const signUp = async (req, res) => {
   try {
     const { fullName, email, password, mobile, role } = req.body;
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ message: "User Already exist." });
+
+    if (!fullName || !email || !password || !mobile || !role) {
+      return res.status(400).json({ message: "All fields are required." });
     }
     if (password.length < 6) {
-      return res
-        .status(400)
-        .json({ message: "password must be at least 6 characters." });
+      return res.status(400).json({ message: "Password must be at least 6 characters." });
     }
     if (mobile.length < 10) {
-      return res
-        .status(400)
-        .json({ message: "mobile no must be at least 10 digits." });
+      return res.status(400).json({ message: "Mobile number must be at least 10 digits." });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists." });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    user = await User.create({
-      fullName,
-      email,
-      role,
-      mobile,
-      password: hashedPassword,
-    });
+    const user = await User.create({ fullName, email, role, mobile, password: hashedPassword });
 
-    const token = await genToken(user._id);
+    const token = genToken(user._id);
     const isProduction = process.env.NODE_ENV === "production";
 
     res.cookie("token", token, {
-      secure: isProduction, // true in prod (HTTPS), false in dev
-      sameSite: isProduction ? "none" : "strict", // "none" allows cross-origin
-      maxAge: 7 * 24 * 60 * 60 * 1000,
       httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     return res.status(201).json({
@@ -48,35 +43,50 @@ export const signUp = async (req, res) => {
       token,
     });
   } catch (error) {
-    return res.status(500).json(`sign up error ${error}`);
+    console.error("signUp error:", error);
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 
 export const signIn = async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required." });
+    }
+
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: "User does not exist." });
+      return res.status(400).json({ message: "Invalid email or password." }); // don't hint which field is wrong
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: "incorrect Password" });
+      return res.status(400).json({ message: "Invalid email or password." });
     }
 
-    const token = await genToken(user._id);
+    const token = genToken(user._id);
     const isProduction = process.env.NODE_ENV === "production";
 
     res.cookie("token", token, {
-      secure: isProduction, // true in prod (HTTPS), false in dev
-      sameSite: isProduction ? "none" : "strict", // "none" allows cross-origin
-      maxAge: 7 * 24 * 60 * 60 * 1000,
       httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
-    return res.status(200).json(user);
+
+    return res.status(200).json({
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      mobile: user.mobile,
+      token,
+    });
   } catch (error) {
-    return res.status(500).json(`sign In error ${error}`);
+    console.error("signIn error:", error);
+    return res.status(500).json({ message: "Internal server error." });
   }
 };
 

@@ -4,7 +4,7 @@ import { serverUrl } from "../App";
 import { useDispatch } from "react-redux";
 import { setUserData } from "../redux/userSlice.js";
 
-function UsegetCurrentUser() {
+function useGetCurrentUser() {
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(true);
 
@@ -15,14 +15,13 @@ function UsegetCurrentUser() {
           `${serverUrl}/api/user/current`,
           { withCredentials: true }
         );
-
         dispatch(setUserData(result.data));
       } catch (error) {
-        if (error.response?.status === 401) {
-          // ✅ user not logged in → normal case
-          dispatch(setUserData(null));
+        if (error?.response?.status === 401) {
+          dispatch(setUserData(null)); // not logged in — expected
         } else {
           console.error("Fetch user error:", error);
+          dispatch(setUserData(null)); // ✅ also clear on unexpected errors
         }
       } finally {
         setLoading(false);
@@ -30,9 +29,9 @@ function UsegetCurrentUser() {
     };
 
     fetchUser();
-  }, []);
+  }, [dispatch]);
 
-  return { loading }; // 👈 important
+  return { loading };
 }
 
-export default UsegetCurrentUser;
+export default useGetCurrentUser;

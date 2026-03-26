@@ -21,17 +21,18 @@ const css = `
   display: flex; align-items: center; justify-content: center;
   padding: 24px 16px;
 }
-
-/* ── Card ── */
 .su-card {
   width: 100%; max-width: 460px;
   background: #fff; border-radius: 24px;
   border: 1px solid rgba(0,0,0,0.06);
   box-shadow: 0 4px 12px rgba(0,0,0,0.05), 0 20px 60px rgba(0,0,0,0.08);
   overflow: hidden;
+  animation: cardIn .45s cubic-bezier(.34,1.56,.64,1);
 }
-
-/* ── Header ── */
+@keyframes cardIn {
+  from { opacity:0; transform:scale(.96) translateY(16px); }
+  to   { opacity:1; transform:scale(1) translateY(0); }
+}
 .su-header {
   padding: 28px 32px 22px;
   background: linear-gradient(135deg, #1a3c2e 0%, #2d6a4f 100%);
@@ -57,11 +58,7 @@ const css = `
   font-size: 0.78rem; color: rgba(255,255,255,0.55);
   margin: 0; position: relative; z-index: 1; line-height: 1.5;
 }
-
-/* ── Body ── */
 .su-body { padding: 24px 32px 30px; display: flex; flex-direction: column; gap: 14px; }
-
-/* ── Field ── */
 .su-field { display: flex; flex-direction: column; gap: 5px; }
 .su-label {
   font-size: 0.72rem; font-weight: 700; color: #666;
@@ -95,8 +92,6 @@ const css = `
   align-items: center; transition: color .15s;
 }
 .su-eye-btn:hover { color: #666; }
-
-/* ── Role selector ── */
 .su-role-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .su-role-btn {
   padding: 9px 6px; border-radius: 10px;
@@ -111,16 +106,12 @@ const css = `
   border-color: #1a3c2e; color: #fff;
   box-shadow: 0 2px 8px rgba(26,60,46,0.25);
 }
-
-/* ── Error ── */
 .su-error {
   background: #fff5f5; border: 1px solid #fecaca;
   border-radius: 10px; padding: 9px 13px;
   font-size: 0.76rem; font-weight: 600; color: #dc2626;
   display: flex; align-items: center; gap: 5px;
 }
-
-/* ── Divider ── */
 .su-divider {
   display: flex; align-items: center; gap: 10px;
   font-size: 0.72rem; color: #ccc; font-weight: 600;
@@ -128,8 +119,6 @@ const css = `
 .su-divider::before, .su-divider::after {
   content: ''; flex: 1; height: 1px; background: #f0f0f0;
 }
-
-/* ── Submit ── */
 .su-submit {
   width: 100%; padding: 13px;
   background: linear-gradient(135deg, #1a3c2e, #2d6a4f);
@@ -142,8 +131,6 @@ const css = `
 }
 .su-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 22px rgba(26,60,46,0.42); }
 .su-submit:disabled { opacity: .65; cursor: not-allowed; }
-
-/* ── Google btn ── */
 .su-google {
   width: 100%; padding: 12px;
   background: #fff; border: 1.5px solid #e5e5e5;
@@ -153,33 +140,46 @@ const css = `
   transition: all .15s; font-family: 'Inter', sans-serif;
 }
 .su-google:hover { background: #f8f8f8; border-color: #d0d0d0; }
-
-/* ── Footer ── */
+.su-google:disabled { opacity: .65; cursor: not-allowed; }
 .su-footer {
   text-align: center; font-size: 0.8rem; color: #aaa; cursor: default;
 }
 .su-footer span { color: #1a3c2e; font-weight: 700; cursor: pointer; transition: opacity .15s; }
 .su-footer span:hover { opacity: .7; }
-
-/* ── Role label map ── */
 `;
 
-const roleLabels = { user: "🍽 Customer", owner: "🏪 Owner", deliveryBoy: "🛵 Delivery" }
+const roleLabels = { user: "🍽 Customer", owner: "🏪 Owner", deliveryBoy: "🛵 Delivery" };
 
 function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState("user");
-  const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [mobile, setMobile] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  const validate = () => {
+    if (!fullName || !email || !password || !mobile) {
+      setErr("All fields are required."); return false;
+    }
+    if (password.length < 6) {
+      setErr("Password must be at least 6 characters."); return false;
+    }
+    if (mobile.length < 10) {
+      setErr("Mobile number must be at least 10 digits."); return false;
+    }
+    return true;
+  };
+
   const handleSignUp = async () => {
+    if (!validate()) return;
+
     setLoading(true);
+    setErr("");
     try {
       const result = await axios.post(
         `${serverUrl}/api/auth/signup`,
@@ -187,26 +187,35 @@ function SignUp() {
         { withCredentials: true }
       );
       dispatch(setUserData(result.data));
-      setErr("");
-      setLoading(false);
+      navigate("/"); // redirect after signup
     } catch (error) {
-      setErr(error?.response?.data?.message);
+      setErr(error?.response?.data?.message || "Sign up failed. Please try again.");
+    } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleAuth = async () => {
-    if (!mobile) return setErr("Mobile number is required");
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
+    if (!mobile) return setErr("Mobile number is required for Google sign-up.");
+    if (mobile.length < 10) return setErr("Mobile number must be at least 10 digits.");
+
+    setLoading(true);
+    setErr("");
     try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
       const { data } = await axios.post(
         `${serverUrl}/api/auth/google-auth`,
         { fullName: result.user.displayName, email: result.user.email, role, mobile },
         { withCredentials: true }
       );
       dispatch(setUserData(data));
-    } catch (error) { console.log(error); }
+      navigate("/"); // redirect after Google signup
+    } catch (error) {
+      setErr(error?.response?.data?.message || "Google sign-up failed.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -260,8 +269,10 @@ function SignUp() {
                 <span className="su-input-icon"><MdLock size={17} /></span>
                 <input
                   type={showPassword ? "text" : "password"}
-                  className="su-input" placeholder="Min. 8 characters"
-                  onChange={e => setPassword(e.target.value)} value={password}
+                  className="su-input"
+                  placeholder="Min. 6 characters"
+                  onChange={e => setPassword(e.target.value)}
+                  value={password}
                 />
                 <button className="su-eye-btn" type="button" onClick={() => setShowPassword(p => !p)}>
                   {showPassword ? <FaRegEyeSlash size={15} /> : <FaRegEye size={15} />}
@@ -297,7 +308,7 @@ function SignUp() {
             <div className="su-divider">or continue with</div>
 
             {/* Google */}
-            <button className="su-google" onClick={handleGoogleAuth}>
+            <button className="su-google" onClick={handleGoogleAuth} disabled={loading}>
               <FcGoogle size={20} /> Sign up with Google
             </button>
 
