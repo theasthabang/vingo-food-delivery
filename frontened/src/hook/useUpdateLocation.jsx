@@ -1,20 +1,23 @@
 import axios from "axios";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { serverUrl } from "../App";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { setLocation } from "../redux/mapSlice";
+
+const THROTTLE_MS = 15000; // 15 seconds
 
 function useUpdateLocation() {
   const { userData } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
+  const lastSentTime = useRef(0); // ✅ persists across renders
 
   useEffect(() => {
-    if (!userData?._id) return; // ✅ only run if logged in
+    if (!userData?._id) return;
 
     if (!navigator.geolocation) {
-      console.log("Geolocation not supported");
+      console.warn("Geolocation not supported by this browser."); // ✅
       return;
     }
-
-    let watchId;
 
     const updateLocation = async (lat, lon) => {
       try {
@@ -24,39 +27,39 @@ function useUpdateLocation() {
           { withCredentials: true }
         );
       } catch (error) {
-        console.error(
-          "Location update error:",
-          error?.response?.data || error.message
-        );
+        console.error("Location update error:", error?.response?.data || error.message);
       }
     };
 
-    let lastSentTime = 0;
-
-    watchId = navigator.geolocation.watchPosition(
+    const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         const now = Date.now();
+        if (now - lastSentTime.current < THROTTLE_MS) return; // ✅ ref-based throttle
+        lastSentTime.current = now;
 
-        // ✅ throttle: send every 15 seconds only
-        if (now - lastSentTime < 15000) return;
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
 
-        lastSentTime = now;
+        // ✅ Update Redux so other components stay in sync
+        dispatch(setLocation({ lat, lon }));
 
-        updateLocation(pos.coords.latitude, pos.coords.longitude);
+        // ✅ Update backend
+        updateLocation(lat, lon);
       },
       (error) => {
-        console.error("Location error:", error.message);
+        console.error("Watch position error:", error.message);
       },
       {
         enableHighAccuracy: true,
+        timeout: 10000,   // ✅ don't hang forever
+        maximumAge: 30000 // ✅ accept 30s cached position
       }
     );
 
-    // ✅ cleanup (VERY IMPORTANT)
     return () => {
-      if (watchId) navigator.geolocation.clearWatch(watchId);
+      navigator.geolocation.clearWatch(watchId); // ✅ cleanup
     };
-  }, [userData?._id]);
+  }, [userData?._id, dispatch]);
 }
 
 export default useUpdateLocation;

@@ -7,11 +7,11 @@ import { serverUrl } from "../App";
 function useGetMyShop() {
   const dispatch = useDispatch();
   const { userData } = useSelector((state) => state.user);
-
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!userData?._id) return; // ✅ only run if user exists
+    // ✅ Only run for logged-in owners
+    if (!userData?._id || userData?.role !== "owner") return;
 
     const fetchShop = async () => {
       setLoading(true);
@@ -20,19 +20,14 @@ function useGetMyShop() {
           `${serverUrl}/api/shop/get-my`,
           { withCredentials: true }
         );
-
         dispatch(setMyShopData(result.data));
       } catch (error) {
-        if (error.response?.status === 404) {
-          // ✅ user has no shop yet (normal case)
-          dispatch(setMyShopData(null));
-        } else if (error.response?.status === 401) {
-          console.warn("Unauthorized - please login");
+        if (error?.response?.status === 404) {
+          dispatch(setMyShopData(null)); // no shop yet — normal
+        } else if (error?.response?.status === 401) {
+          dispatch(setMyShopData(null)); // ✅ clear stale data on auth failure
         } else {
-          console.error(
-            "Fetch shop error:",
-            error?.response?.data || error.message
-          );
+          console.error("Fetch shop error:", error?.response?.data || error.message);
         }
       } finally {
         setLoading(false);
@@ -40,7 +35,7 @@ function useGetMyShop() {
     };
 
     fetchShop();
-  }, [userData?._id]); // ✅ important fix
+  }, [userData?._id, dispatch]); // ✅ dispatch added
 
   return { loading };
 }

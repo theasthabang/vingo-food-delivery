@@ -4,25 +4,29 @@ import { serverUrl } from "../App";
 import { useDispatch, useSelector } from "react-redux";
 import { setShopsInMyCity } from "../redux/userSlice";
 
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 function useGetShopByCity() {
   const dispatch = useDispatch();
-  const { currentCity } = useSelector((state) => state.user);
-
+  const { currentCity, userData } = useSelector((state) => state.user);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!currentCity) return; // ✅ FIX: avoid undefined API call
+    // ✅ Guard — need both user and city
+    if (!currentCity || !userData?._id) return;
 
     const fetchShops = async () => {
       setLoading(true);
-
       try {
-        // ✅ Cache check (BIG performance boost)
-        const cache = sessionStorage.getItem(`shops-${currentCity}`);
-        if (cache) {
-          dispatch(setShopsInMyCity(JSON.parse(cache)));
-          setLoading(false);
-          return;
+        // ✅ Cache check with expiry
+        const cached = sessionStorage.getItem(`shops-${currentCity}`);
+        if (cached) {
+          const { data, cachedAt } = JSON.parse(cached);
+          if (Date.now() - cachedAt < CACHE_TTL) {
+            dispatch(setShopsInMyCity(data));
+            return; // ✅ finally handles setLoading(false)
+          }
+          // expired — fall through to fresh fetch
         }
 
         const result = await axios.get(
@@ -32,24 +36,21 @@ function useGetShopByCity() {
 
         dispatch(setShopsInMyCity(result.data));
 
-        // ✅ Save to cache
+        // ✅ Store with timestamp
         sessionStorage.setItem(
           `shops-${currentCity}`,
-          JSON.stringify(result.data)
+          JSON.stringify({ data: result.data, cachedAt: Date.now() })
         );
 
       } catch (error) {
-        console.error(
-          "Fetch shops error:",
-          error?.response?.data || error.message
-        );
+        console.error("Fetch shops error:", error?.response?.data || error.message);
       } finally {
         setLoading(false);
       }
     };
 
     fetchShops();
-  }, [currentCity]);
+  }, [currentCity, dispatch]); // ✅ dispatch added
 
   return { loading };
 }
