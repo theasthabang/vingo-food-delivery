@@ -1,15 +1,15 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { FaLocationDot } from "react-icons/fa6";
 import { IoIosSearch } from "react-icons/io";
 import { FiShoppingCart } from "react-icons/fi";
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector } from "react-redux";
 import { RxCross2 } from "react-icons/rx";
-import axios from 'axios';
-import { serverUrl } from '../App';
-import { setSearchItems, setUserData } from '../redux/userSlice';
+import axios from "axios";
+import { serverUrl } from "../App";
+import { setSearchItems, setUserData } from "../redux/userSlice";
 import { FaPlus } from "react-icons/fa6";
 import { TbReceipt2 } from "react-icons/tb";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -196,33 +196,61 @@ const css = `
 `;
 
 function Nav() {
-  const { userData, currentCity, cartItems } = useSelector(s => s.user)
-  const { myShopData } = useSelector(s => s.owner)
-  const [showInfo, setShowInfo] = useState(false)
-  const [showSearch, setShowSearch] = useState(false)
-  const [query, setQuery] = useState("")
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
+  const { userData, currentCity, cartItems } = useSelector((s) => s.user);
+  const { myShopData } = useSelector((s) => s.owner);
+  const [showInfo, setShowInfo] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [query, setQuery] = useState("");
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const dropdownRef = useRef(null);
+
+  // ✅ Guard — don't render until user is known
+  if (!userData) return null;
+
+  // ✅ Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowInfo(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleLogOut = async () => {
     try {
-      const result = await axios.get(`${serverUrl}/api/auth/signout`, { withCredentials: true })
-      dispatch(setUserData(null))
-      console.log(result)
-    } catch (error) { console.log(error) }
-  }
+      await axios.get(`${serverUrl}/api/auth/signout`, {
+        withCredentials: true,
+      });
+      dispatch(setUserData(null));
+      navigate("/signin"); // ✅ redirect after logout
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
-  const handleSearchItems = async () => {
+  const handleSearchItems = useCallback(async () => {
     try {
-      const result = await axios.get(`${serverUrl}/api/item/search-items?query=${query}&city=${currentCity}`, { withCredentials: true })
-      dispatch(setSearchItems(result.data))
-    } catch (error) { console.log(error) }
-  }
+      const result = await axios.get(`${serverUrl}/api/item/search-items`, {
+        params: { query, city: currentCity }, // ✅ cleaner than string interpolation
+        withCredentials: true,
+      });
+      dispatch(setSearchItems(result.data));
+    } catch (error) {
+      console.error("Search error:", error);
+    }
+  }, [query, currentCity, dispatch]);
 
   useEffect(() => {
-    if (query) handleSearchItems()
-    else dispatch(setSearchItems(null))
-  }, [query])
+    if (!query) {
+      dispatch(setSearchItems(null));
+      return;
+    }
+    const timer = setTimeout(() => handleSearchItems(), 400);
+    return () => clearTimeout(timer);
+  }, [query, handleSearchItems]);
 
   const SearchInner = () => (
     <>
@@ -232,32 +260,45 @@ function Nav() {
       </div>
       <div className="nav-search-field">
         <IoIosSearch size={16} color="#ccc" />
-        <input type="text" placeholder="Search food or restaurants…" onChange={e => setQuery(e.target.value)} value={query} />
+        <input
+          type="text"
+          placeholder="Search food or restaurants…"
+          onChange={(e) => setQuery(e.target.value)}
+          value={query}
+        />
       </div>
     </>
-  )
+  );
 
   return (
     <>
       <style>{css}</style>
       <nav className="nav">
-
         {showSearch && userData.role === "user" && (
-          <div className="nav-mobile-search"><SearchInner /></div>
+          <div className="nav-mobile-search">
+            <SearchInner />
+          </div>
         )}
 
         <div className="nav-logo" onClick={() => navigate("/")}>
           <div className="nav-logo-icon">V</div>
-          <span className="nav-logo-text">vin<span>go</span></span>
+          <span className="nav-logo-text">
+            vin<span>go</span>
+          </span>
         </div>
 
         {userData.role === "user" && (
-          <div className="nav-search"><SearchInner /></div>
+          <div className="nav-search">
+            <SearchInner />
+          </div>
         )}
 
         <div className="nav-actions">
           {userData.role === "user" && (
-            <button className="nav-icon-btn green hide-md" onClick={() => setShowSearch(p => !p)}>
+            <button
+              className="nav-icon-btn green hide-md"
+              onClick={() => setShowSearch((p) => !p)}
+            >
               {showSearch ? <RxCross2 size={17} /> : <IoIosSearch size={18} />}
             </button>
           )}
@@ -266,18 +307,30 @@ function Nav() {
             <>
               {myShopData && (
                 <>
-                  <button className="nav-btn-green show-md" onClick={() => navigate("/add-item")}>
+                  <button
+                    className="nav-btn-green show-md"
+                    onClick={() => navigate("/add-item")}
+                  >
                     <FaPlus size={11} /> Add Item
                   </button>
-                  <button className="nav-icon-btn green hide-md" onClick={() => navigate("/add-item")}>
+                  <button
+                    className="nav-icon-btn green hide-md"
+                    onClick={() => navigate("/add-item")}
+                  >
                     <FaPlus size={15} />
                   </button>
                 </>
               )}
-              <button className="nav-btn-ghost show-md" onClick={() => navigate("/my-orders")}>
+              <button
+                className="nav-btn-ghost show-md"
+                onClick={() => navigate("/my-orders")}
+              >
                 <TbReceipt2 size={14} /> Orders
               </button>
-              <button className="nav-icon-btn hide-md" onClick={() => navigate("/my-orders")}>
+              <button
+                className="nav-icon-btn hide-md"
+                onClick={() => navigate("/my-orders")}
+              >
                 <TbReceipt2 size={17} />
               </button>
             </>
@@ -286,16 +339,27 @@ function Nav() {
               {userData.role === "user" && (
                 <div className="nav-cart" onClick={() => navigate("/cart")}>
                   <FiShoppingCart size={18} />
-                  {cartItems.length > 0 && <span className="nav-cart-badge">{cartItems.length}</span>}
+                  {cartItems?.length > 0 && (
+                    <span className="nav-cart-badge">{cartItems.length}</span>
+                  )}
                 </div>
               )}
-              <button className="nav-btn-ghost show-md" onClick={() => navigate("/my-orders")}>Orders</button>
+              <button
+                className="nav-btn-ghost show-md"
+                onClick={() => navigate("/my-orders")}
+              >
+                Orders
+              </button>
             </>
           )}
 
-          <div className="nav-avatar-wrap">
-            <button className="nav-avatar-btn" onClick={() => setShowInfo(p => !p)}>
-              {userData?.fullName.slice(0, 1).toUpperCase()}
+          {/* ✅ ref added for outside click detection */}
+          <div className="nav-avatar-wrap" ref={dropdownRef}>
+            <button
+              className="nav-avatar-btn"
+              onClick={() => setShowInfo((p) => !p)}
+            >
+              {userData.fullName.slice(0, 1).toUpperCase()}
             </button>
             {showInfo && (
               <div className="nav-dropdown">
@@ -304,13 +368,24 @@ function Nav() {
                   <p className="nav-dropdown-role">{userData.role}</p>
                 </div>
                 {userData.role === "user" && (
-                  <button className="nav-dropdown-item hide-md" style={{ display: 'flex' }}
-                    onClick={() => { navigate("/my-orders"); setShowInfo(false) }}>
+                  <button
+                    className="nav-dropdown-item hide-md"
+                    style={{ display: "flex" }}
+                    onClick={() => {
+                      navigate("/my-orders");
+                      setShowInfo(false);
+                    }}
+                  >
                     <TbReceipt2 size={14} /> My Orders
                   </button>
                 )}
-                <button className="nav-dropdown-item danger"
-                  onClick={() => { handleLogOut(); setShowInfo(false) }}>
+                <button
+                  className="nav-dropdown-item danger"
+                  onClick={() => {
+                    handleLogOut();
+                    setShowInfo(false);
+                  }}
+                >
                   Log Out
                 </button>
               </div>
@@ -319,7 +394,7 @@ function Nav() {
         </div>
       </nav>
     </>
-  )
+  );
 }
 
-export default Nav
+export default Nav;

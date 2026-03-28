@@ -1,5 +1,7 @@
-import express from "express";
 import dotenv from "dotenv";
+dotenv.config(); // ← MOVE THIS to be right after dotenv import
+
+import express from "express";
 import connectDB from "./config/db.js";
 import cookieParser from "cookie-parser";
 import authrouter from "./routes/auth.route.js";
@@ -12,7 +14,7 @@ import http from "http";
 import { Server } from "socket.io";
 import { socketHandler } from "./socket.js";
 
-dotenv.config();
+// rest of your code stays the same...
 
 const app = express();
 const server = http.createServer(app);
